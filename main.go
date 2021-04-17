@@ -1,11 +1,3 @@
-# locknt
-A collections of Lock-free data structures in Golang
-
-## Queue
-The queue implementation is based on [this](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.8674&rep=rep1&type=pdf) paper.
-
-### Ex
-```go
 package main
 
 import (
@@ -28,4 +20,3 @@ func main() {
 	wg.Wait()
 	queue.PrintQueue(q)
 }
-```
