@@ -34,6 +34,9 @@ func BenchmarkLockEnqueue(b *testing.B) {
 func BenchmarkLockFreeDequeue(b *testing.B) {
 	q := NewLockFreeQueue()
 	var wg sync.WaitGroup
+	for i := 0; i < b.N+1; i++ {
+		q.Enqueue(i)
+	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
@@ -47,6 +50,9 @@ func BenchmarkLockFreeDequeue(b *testing.B) {
 func BenchmarkLockDequeue(b *testing.B) {
 	q := NewLockQueue()
 	var wg sync.WaitGroup
+	for i := 0; i < b.N+1; i++ {
+		q.Enqueue(i)
+	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
