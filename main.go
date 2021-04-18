@@ -3,32 +3,22 @@ package main
 import (
 	"sync"
 
-	"github.com/MadhavJivrajani/locknt/queue"
+	"github.com/MadhavJivrajani/locknt/list"
 )
 
 func main() {
-	q := queue.NewLockQueue()
+	l := list.NewLockFreeList()
 	var wg sync.WaitGroup
-	//s := stack.NewLockFreeStack()
 
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
-			q.Enqueue(i)
-			//s.Push(stack.ValueType{i})
+			err := l.Insert(int64(i))
+			if err != nil {
+				panic(err)
+			}
 			wg.Done()
 		}(i, &wg)
 	}
 	wg.Wait()
-
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(i int, wg *sync.WaitGroup) {
-			q.Dequeue()
-			//s.Pop()
-			wg.Done()
-		}(i, &wg)
-	}
-	wg.Wait()
-	//queue.PrintQueue(q)
 }
