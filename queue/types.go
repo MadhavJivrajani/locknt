@@ -1,5 +1,7 @@
 package queue
 
+import "sync"
+
 // Node represents a single node in the queue
 type Node struct {
 	Val  interface{}
@@ -26,6 +28,27 @@ type LockFreeQueue struct {
 // the LockFreeQueue type
 func NewLockFreeQueue() *LockFreeQueue {
 	queue := new(LockFreeQueue)
+	queue.Head = new(Node)
+	queue.Head.Next = nil
+	queue.Tail = queue.Head
+	queue.Size = 0
+
+	return queue
+}
+
+// LockQueue is a thread safe
+// queue that is not lock free
+type LockQueue struct {
+	Head *Node
+	Tail *Node
+	Size uint32
+	lock sync.Mutex
+}
+
+// NewLockQueue is a constructor for the
+// LockQueue type.
+func NewLockQueue() *LockQueue {
+	queue := new(LockQueue)
 	queue.Head = new(Node)
 	queue.Head.Next = nil
 	queue.Tail = queue.Head

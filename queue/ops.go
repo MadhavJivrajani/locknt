@@ -54,7 +54,13 @@ func (q *LockFreeQueue) Dequeue() (interface{}, error) {
 			break
 		}
 	}
-	// decrement queue size.
+	// decrement queue size by 1.
 	atomic.AddUint32(&q.Size, ^uint32(0))
 	return pointer.Next.Val, nil
+}
+
+// Enqueue implements the LockQueue type, enqueues
+// an element into a LockQueue. Makes use of mutex
+func (q *LockQueue) Enqueue(val interface{}) {
+
 }

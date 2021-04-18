@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/MadhavJivrajani/locknt/queue"
+	"github.com/MadhavJivrajani/locknt/stack"
 )
 
 func main() {
@@ -19,4 +20,7 @@ func main() {
 	}
 	wg.Wait()
 	queue.PrintQueue(q)
+	// stack
+	s := stack.NewLockFreeStack()
+	s.Push(stack.ValueType{10})
 }
