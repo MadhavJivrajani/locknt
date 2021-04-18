@@ -2,12 +2,9 @@ package stack
 
 import sync "sync"
 
-// ValueType
-type ValueType []interface{}
-
 // Item
 type Item struct {
-	Value ValueType
+	Value interface{}
 	Next  *Item
 }
 

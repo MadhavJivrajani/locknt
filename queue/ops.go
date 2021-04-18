@@ -8,15 +8,10 @@ import (
 
 // Enqueue enqueues a `val`
 func (q *LockFreeQueue) Enqueue(val interface{}) {
-	// create the node to be inserted.
-	newNode := NewNode(val)
-	pointer := q.Tail
-	oldPointer := pointer
-
+	newNode := &Node{val, nil}
+	var pointer *Node
 	for {
-		for pointer.Next != nil {
-			pointer = pointer.Next
-		}
+		pointer = (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.Tail))))
 		ok := atomic.CompareAndSwapPointer(
 			(*unsafe.Pointer)(unsafe.Pointer(&pointer.Next)),
 			unsafe.Pointer(nil),
@@ -28,10 +23,10 @@ func (q *LockFreeQueue) Enqueue(val interface{}) {
 	}
 	atomic.CompareAndSwapPointer(
 		(*unsafe.Pointer)(unsafe.Pointer(&q.Tail)),
-		unsafe.Pointer(oldPointer),
+		unsafe.Pointer(pointer),
 		unsafe.Pointer(newNode),
 	)
-	// increment queue size.
+	// increment queue size by 1.
 	atomic.AddUint32(&q.Size, 1)
 }
 
@@ -41,7 +36,7 @@ func (q *LockFreeQueue) Enqueue(val interface{}) {
 func (q *LockFreeQueue) Dequeue() (interface{}, error) {
 	var pointer *Node
 	for {
-		pointer = q.Head
+		pointer = (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.Head))))
 		if pointer.Next == nil {
 			return nil, fmt.Errorf("empty queue")
 		}
@@ -62,5 +57,27 @@ func (q *LockFreeQueue) Dequeue() (interface{}, error) {
 // Enqueue implements the LockQueue type, enqueues
 // an element into a LockQueue. Makes use of mutex
 func (q *LockQueue) Enqueue(val interface{}) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
 
+	newNode := &Node{val, nil}
+	q.Tail.Next = newNode
+	q.Tail = newNode
+	q.Size += 1
+}
+
+// Dequeue implements the LockQueue type, dequeues
+// an element, returns the element if no error
+// occured. Makes use of mutex
+func (q *LockQueue) Dequeue() (interface{}, error) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	pointer := q.Head
+	if pointer.Next == nil {
+		return nil, fmt.Errorf("empty queue")
+	}
+	pointer = pointer.Next
+	q.Size -= 1
+	return pointer.Next.Val, nil
 }

@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-func (stack *LockFreeStack) Pop() ValueType {
+func (stack *LockFreeStack) Pop() interface{} {
 
 	var oldTop *Item
 	var newTop *Item
@@ -27,7 +27,7 @@ func (stack *LockFreeStack) Pop() ValueType {
 	return oldTop.Value
 }
 
-func (stack *LockFreeStack) Push(value ValueType) {
+func (stack *LockFreeStack) Push(value interface{}) {
 	var oldTop *Item
 	newTop := &Item{value, nil}
 
@@ -42,7 +42,7 @@ func (stack *LockFreeStack) Push(value ValueType) {
 
 }
 
-func (stack *LockFreeStack) Peek(value ValueType) ValueType {
+func (stack *LockFreeStack) Peek() interface{} {
 	for {
 		top := (*Item)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&stack.Top))))
 		topValue := top.Value
@@ -52,37 +52,33 @@ func (stack *LockFreeStack) Peek(value ValueType) ValueType {
 	}
 }
 
-func (stack *LockStack) Pop() ValueType {
-
+func (stack *LockStack) Pop() interface{} {
 	stack.accessLock.Lock()
+	defer stack.accessLock.Unlock()
 
 	oldTop := stack.Top
 	newTop := oldTop.Next
 	stack.Top = newTop
 
-	stack.accessLock.Unlock()
 	return oldTop.Value
 }
 
-func (stack *LockStack) Push(value ValueType) {
-
+func (stack *LockStack) Push(value interface{}) {
 	stack.accessLock.Lock()
+	defer stack.accessLock.Unlock()
 
 	oldTop := stack.Top
 	newTop := &Item{value, nil}
 
 	newTop.Next = oldTop
 	stack.Top = newTop
-
-	stack.accessLock.Unlock()
 }
 
-func (stack *LockStack) Peek(value ValueType) ValueType {
+func (stack *LockStack) Peek() interface{} {
 	stack.accessLock.RLock()
+	defer stack.accessLock.RUnlock()
 
 	top := stack.Top
-
-	stack.accessLock.RUnlock()
 
 	if top == nil {
 		return nil
