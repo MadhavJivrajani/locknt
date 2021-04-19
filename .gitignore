@@ -1,2 +1,4 @@
 queue/queue
+queue/*.test
 locknt
+*.out

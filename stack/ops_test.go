@@ -1,46 +1,46 @@
-package queue
+package stack
 
 import (
 	"sync"
 	"testing"
 )
 
-func BenchmarkLockFreeEnqueue(b *testing.B) {
-	q := NewLockFreeQueue()
+func BenchmarkLockFreePush(b *testing.B) {
+	s := NewLockFreeStack()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
-			q.Enqueue(i)
+			s.Push(i)
 			wg.Done()
 		}(i, &wg)
 	}
 	wg.Wait()
 }
 
-func BenchmarkLockEnqueue(b *testing.B) {
-	q := NewLockQueue()
+func BenchmarkLockPush(b *testing.B) {
+	s := NewLockStack()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
-			q.Enqueue(i)
+			s.Push(i)
 			wg.Done()
 		}(i, &wg)
 	}
 	wg.Wait()
 }
 
-func BenchmarkLockFreeDequeue(b *testing.B) {
-	q := NewLockFreeQueue()
+func BenchmarkLockFreePop(b *testing.B) {
+	s := NewLockFreeStack()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N+1; i++ {
-		q.Enqueue(i)
+		s.Push(i)
 	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
-			q.Dequeue()
+			s.Pop()
 			wg.Done()
 		}(&wg)
 	}
@@ -48,15 +48,15 @@ func BenchmarkLockFreeDequeue(b *testing.B) {
 }
 
 func BenchmarkLockDequeue(b *testing.B) {
-	q := NewLockQueue()
+	s := NewLockStack()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N+1; i++ {
-		q.Enqueue(i)
+		s.Push(i)
 	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
-			q.Dequeue()
+			s.Pop()
 			wg.Done()
 		}(&wg)
 	}
