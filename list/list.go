@@ -7,6 +7,25 @@ import (
 	"unsafe"
 )
 
+type IntList struct {
+	head unsafe.Pointer
+	size int32
+}
+
+type IntListNode struct {
+	val  int
+	next unsafe.Pointer
+}
+
+func IntListCmp(a, b int) int {
+	return a - b
+}
+
+// NewList returns a lock-free ordered list with values of type int.
+func NewList() *IntList {
+	return &IntList{}
+}
+
 type Node struct {
 	Next *Node
 	Data int64
@@ -15,7 +34,6 @@ type Node struct {
 // Tis an ordered list
 type LockFreeList struct {
 	Head *Node
-	Tail *Node
 	Size uint32
 }
 
@@ -27,20 +45,15 @@ type LockedList struct {
 }
 
 func newNode(data int64) *Node {
-	new_node := new(Node)
-	new_node.Data = data
-	new_node.Next = nil
+	new_node := &Node{
+		Data: data,
+		Next: nil,
+	}
 	return new_node
 }
 
 func NewLockFreeList() *LockFreeList {
-	list := new(LockFreeList)
-	list.Head = new(Node)
-	list.Tail = new(Node)
-	list.Head.Next = list.Tail
-	list.Size = 0
-
-	return list
+	return &LockFreeList{}
 }
 
 func NewLockedList() *LockedList {
@@ -48,42 +61,10 @@ func NewLockedList() *LockedList {
 	list.Head = new(Node)
 	list.Tail = new(Node)
 	list.Head.Next = list.Tail
+	list.Tail.Next = nil
 	list.Size = 0
 
 	return list
-}
-
-// Lockfree List is not using 2 stage deletion as of yet -> may lead to some nasty cases
-
-// Required functions
-// insert - have an arg that tells whether the list is ordered (based on key)
-// delete - based on key
-// find
-// search - required for ordered list insert
-
-func (list *LockFreeList) search(data int64, left_node **Node) *Node {
-	var left_node_next *Node
-	var right_node *Node
-
-	for {
-		t := list.Head
-		t_next := t.Next
-
-		for t.Data < data {
-			*left_node = t
-			left_node_next = t_next
-			t = t_next
-			if t == list.Tail {
-				break
-			}
-			t_next = t.Next
-		}
-		right_node = t
-
-		if left_node_next == right_node {
-			return right_node
-		}
-	}
 }
 
 func (list *LockedList) search(data int64, left_node **Node) *Node {
@@ -111,30 +92,82 @@ func (list *LockedList) search(data int64, left_node **Node) *Node {
 	}
 }
 
+func LockFreeListCmp(ele1, ele2 int64) int64 {
+	return ele1 - ele2
+}
+
 func (list *LockFreeList) Insert(data int64) error {
 
 	node := newNode(data)
-	var right_node *Node
-	var left_node *Node
+
+	var headPtr unsafe.Pointer
+	var headNode *Node
 
 	for {
-		right_node = list.search(data, &left_node)
-		if right_node != list.Tail && right_node.Data == data {
-			return fmt.Errorf("Key already exists in list")
-		}
-		node.Next = right_node
+		headPtr = atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)))
 
-		ok := atomic.CompareAndSwapPointer(
-			(*unsafe.Pointer)(unsafe.Pointer(left_node.Next)),
-			unsafe.Pointer(right_node),
-			unsafe.Pointer(node))
+		if headPtr == nil {
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
+				headPtr,
+				unsafe.Pointer(node))
+			if !ok {
+				continue
+			}
 
-		if ok {
-			break
+			atomic.AddUint32(&list.Size, 1)
+			return nil
 		}
+
+		headNode = (*Node)(headPtr)
+		if LockFreeListCmp(headNode.Data, node.Data) > 0 {
+			node.Next = (*Node)(headPtr)
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
+				headPtr,
+				unsafe.Pointer(node))
+			if !ok {
+				continue
+			}
+
+			atomic.AddUint32(&list.Size, 1)
+			return nil
+		}
+		break
 	}
-	atomic.AddUint32(&list.Size, 1)
-	return nil
+
+	for {
+		nextPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)))
+		if nextPtr == nil {
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
+				nextPtr,
+				unsafe.Pointer(node))
+			if !ok {
+				continue
+			}
+
+			atomic.AddUint32(&list.Size, 1)
+			return nil
+		}
+
+		nextNode := (*Node)(nextPtr)
+		if LockFreeListCmp(nextNode.Data, node.Data) > 0 {
+			node.Next = (*Node)(nextPtr)
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
+				nextPtr,
+				unsafe.Pointer(node))
+			if !ok {
+				continue
+			}
+
+			atomic.AddUint32(&list.Size, 1)
+			return nil
+		}
+
+		if LockFreeListCmp(nextNode.Data, node.Data) == 0 {
+			return fmt.Errorf("Element exists")
+		}
+
+		headNode = nextNode
+	}
 }
 
 func (list *LockedList) Insert(data int64) error {
@@ -156,26 +189,59 @@ func (list *LockedList) Insert(data int64) error {
 }
 
 func (list *LockFreeList) Delete(data int64) error {
-	var right_node *Node
-	var right_node_next *Node
-	var left_node *Node
+	var headPtr unsafe.Pointer
+	var headNode *Node
+	for {
+		headPtr = atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)))
+
+		if headPtr == nil {
+			return fmt.Errorf("Value not found")
+		}
+
+		headNode = (*Node)(headPtr)
+
+		if LockFreeListCmp(headNode.Data, data) == 0 {
+			nextPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)))
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
+				headPtr,
+				nextPtr)
+			if !ok {
+				continue
+			}
+
+			atomic.AddUint32(&list.Size, ^uint32(0))
+			return nil
+		}
+		break
+	}
 
 	for {
-		right_node = list.search(data, &left_node)
-		if right_node == list.Tail || right_node.Data != data {
-			return fmt.Errorf("Data not present in list")
+		nextPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)))
+		if nextPtr == nil {
+			return fmt.Errorf("Value not found")
 		}
-		right_node_next = right_node.Next
-		ok := atomic.CompareAndSwapPointer(
-			(*unsafe.Pointer)(unsafe.Pointer(&left_node.Next)),
-			(unsafe.Pointer(right_node)),
-			(unsafe.Pointer(right_node_next)))
-		if ok {
-			break
+
+		nextNode := (*Node)(nextPtr)
+
+		if LockFreeListCmp(nextNode.Data, data) > 0 {
+			return fmt.Errorf("Value not found")
 		}
+
+		if LockFreeListCmp(nextNode.Data, data) == 0 {
+			replacementPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&nextNode.Next)))
+			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
+				nextPtr,
+				replacementPtr)
+			if !ok {
+				continue
+			}
+
+			atomic.AddUint32(&list.Size, ^uint32(0))
+			return nil
+		}
+
+		headNode = nextNode
 	}
-	atomic.AddUint32(&list.Size, ^uint32(0))
-	return nil
 }
 
 func (list *LockedList) Delete(data int64) error {
