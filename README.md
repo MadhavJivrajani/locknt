@@ -29,3 +29,10 @@ func main() {
 	queue.PrintQueue(q)
 }
 ```
+### Benchmarking and generating call graphs
+
+```
+go test -bench=^<benchmark_name>$ -benchtime=100000x -cpuprofile profile_file.out
+go tool pprof profile_file.out
+(pprof) web # insde pprof, type this
+```
