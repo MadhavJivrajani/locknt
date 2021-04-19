@@ -1,64 +1,64 @@
-package stack
+package list
 
 import (
 	"sync"
 	"testing"
 )
 
-func BenchmarkLockFreePush(b *testing.B) {
-	s := NewLockFreeStack()
+func BenchmarkLockFreeInsert(b *testing.B) {
+	s := NewLockFreeList()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
-			s.Push(i)
+			s.Insert(int64(i))
 			wg.Done()
 		}(i, &wg)
 	}
 	wg.Wait()
 }
 
-func BenchmarkLockPush(b *testing.B) {
-	s := NewLockStack()
+func BenchmarkLockInsert(b *testing.B) {
+	s := NewLockList()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
-			s.Push(i)
+			s.Insert(int64(i))
 			wg.Done()
 		}(i, &wg)
 	}
 	wg.Wait()
 }
 
-func BenchmarkLockFreePop(b *testing.B) {
-	s := NewLockFreeStack()
+func BenchmarkLockFreeDelete(b *testing.B) {
+	s := NewLockFreeList()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N+1; i++ {
-		s.Push(i)
+		s.Insert(int64(i))
 	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup) {
-			s.Pop()
+		go func(i int, wg *sync.WaitGroup) {
+			s.Delete(int64(i))
 			wg.Done()
-		}(&wg)
+		}(i, &wg)
 	}
 	wg.Wait()
 }
 
-func BenchmarkLockPop(b *testing.B) {
-	s := NewLockStack()
+func BenchmarkLockDelete(b *testing.B) {
+	s := NewLockList()
 	var wg sync.WaitGroup
 	for i := 0; i < b.N+1; i++ {
-		s.Push(i)
+		s.Insert(int64(i))
 	}
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup) {
-			s.Pop()
+		go func(i int, wg *sync.WaitGroup) {
+			s.Delete(int64(i))
 			wg.Done()
-		}(&wg)
+		}(i, &wg)
 	}
 	wg.Wait()
 }
