@@ -18,9 +18,8 @@ type LockFreeList struct {
 	Size uint32
 }
 
-type LockedList struct {
+type LockList struct {
 	Head *Node
-	Tail *Node
 	Size uint32
 	lock sync.RWMutex
 }
@@ -37,43 +36,11 @@ func NewLockFreeList() *LockFreeList {
 	return &LockFreeList{}
 }
 
-func NewLockedList() *LockedList {
-	list := new(LockedList)
-	list.Head = new(Node)
-	list.Tail = new(Node)
-	list.Head.Next = list.Tail
-	list.Tail.Next = nil
-	list.Size = 0
-
-	return list
+func NewLockList() *LockList {
+	return &LockList{}
 }
 
-func (list *LockedList) search(data int64, left_node **Node) *Node {
-	var left_node_next *Node
-	var right_node *Node
-
-	for {
-		t := list.Head
-		t_next := t.Next
-
-		for t.Data < data {
-			*left_node = t
-			left_node_next = t_next
-			t = t_next
-			if t == list.Tail {
-				break
-			}
-			t_next = t.Next
-		}
-		right_node = t
-
-		if left_node_next == right_node {
-			return right_node
-		}
-	}
-}
-
-func LockFreeListCmp(ele1, ele2 int64) int64 {
+func ListCmp(ele1, ele2 int64) int64 {
 	return ele1 - ele2
 }
 
@@ -100,7 +67,7 @@ func (list *LockFreeList) Insert(data int64) error {
 		}
 
 		headNode = (*Node)(headPtr)
-		if LockFreeListCmp(headNode.Data, node.Data) > 0 {
+		if ListCmp(headNode.Data, node.Data) > 0 {
 			node.Next = (*Node)(headPtr)
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
 				headPtr,
@@ -130,7 +97,7 @@ func (list *LockFreeList) Insert(data int64) error {
 		}
 
 		nextNode := (*Node)(nextPtr)
-		if LockFreeListCmp(nextNode.Data, node.Data) > 0 {
+		if ListCmp(nextNode.Data, node.Data) > 0 {
 			node.Next = (*Node)(nextPtr)
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
 				nextPtr,
@@ -143,7 +110,7 @@ func (list *LockFreeList) Insert(data int64) error {
 			return nil
 		}
 
-		if LockFreeListCmp(nextNode.Data, node.Data) == 0 {
+		if ListCmp(nextNode.Data, node.Data) == 0 {
 			return fmt.Errorf("Element exists")
 		}
 
@@ -151,21 +118,44 @@ func (list *LockFreeList) Insert(data int64) error {
 	}
 }
 
-func (list *LockedList) Insert(data int64) error {
-	node := newNode(data)
+func (list *LockList) Insert(data int64) error {
 	list.lock.Lock()
+	defer list.lock.Unlock()
+	node := newNode(data)
+	head := list.Head
 
-	var left_node *Node
-	right_node := list.search(data, &left_node)
-	if right_node != list.Tail && right_node.Data == data {
-		return fmt.Errorf("Key already exists in list")
+	if head == nil {
+		list.Head = node
+		list.Size++
+		return nil
 	}
-	node.Next = right_node
-	left_node.Next = node
+	headNode := list.Head
+	if ListCmp(headNode.Data, node.Data) > 0 {
+		node.Next = headNode
+		list.Head = node
+		list.Size++
+		return nil
+	}
 
+	nextNode := headNode.Next
+
+	for nextNode != nil {
+		if ListCmp(nextNode.Data, node.Data) > 0 {
+			node.Next = nextNode
+			headNode.Next = node
+			list.Size++
+			return nil
+		}
+		if ListCmp(nextNode.Data, node.Data) == 0 {
+			return fmt.Errorf("Value already in list")
+		}
+		headNode = nextNode
+		nextNode = nextNode.Next
+	}
+
+	headNode.Next = node
+	node.Next = nextNode
 	list.Size++
-
-	list.lock.Unlock()
 	return nil
 }
 
@@ -181,7 +171,7 @@ func (list *LockFreeList) Delete(data int64) error {
 
 		headNode = (*Node)(headPtr)
 
-		if LockFreeListCmp(headNode.Data, data) == 0 {
+		if ListCmp(headNode.Data, data) == 0 {
 			nextPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)))
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
 				headPtr,
@@ -204,11 +194,11 @@ func (list *LockFreeList) Delete(data int64) error {
 
 		nextNode := (*Node)(nextPtr)
 
-		if LockFreeListCmp(nextNode.Data, data) > 0 {
+		if ListCmp(nextNode.Data, data) > 0 {
 			return fmt.Errorf("Value not found")
 		}
 
-		if LockFreeListCmp(nextNode.Data, data) == 0 {
+		if ListCmp(nextNode.Data, data) == 0 {
 			replacementPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&nextNode.Next)))
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
 				nextPtr,
@@ -225,19 +215,45 @@ func (list *LockFreeList) Delete(data int64) error {
 	}
 }
 
-func (list *LockedList) Delete(data int64) error {
-	var left_node *Node
+func (list *LockList) Delete(data int64) error {
 
 	list.lock.Lock()
-
-	right_node := list.search(data, &left_node)
-	if right_node == list.Tail || right_node.Data != data {
-		return fmt.Errorf("Data not present in list")
+	defer list.lock.Unlock()
+	head := list.Head
+	if head == nil {
+		return fmt.Errorf("List empty")
 	}
-	left_node.Next = right_node.Next
-	list.Size--
 
-	list.lock.Unlock()
+	headNode := list.Head
+
+	if ListCmp(headNode.Data, data) == 0 {
+		list.Head = list.Head.Next
+		list.Size--
+		return nil
+	}
+
+	nextPtr := headNode.Next
+
+	if nextPtr == nil {
+		return fmt.Errorf("Value not found")
+	}
+
+	nextNode := headNode.Next
+
+	if ListCmp(nextNode.Data, data) > 0 {
+		return fmt.Errorf("Value not found")
+	}
+
+	for nextNode != nil {
+		if ListCmp(nextNode.Data, data) == 0 {
+			replacementPtr := nextNode.Next
+			headNode.Next = replacementPtr
+			list.Size--
+			return nil
+		}
+		headNode = nextNode
+		nextNode = nextNode.Next
+	}
 	return nil
 }
 
