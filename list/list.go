@@ -7,25 +7,6 @@ import (
 	"unsafe"
 )
 
-type IntList struct {
-	head unsafe.Pointer
-	size int32
-}
-
-type IntListNode struct {
-	val  int
-	next unsafe.Pointer
-}
-
-func IntListCmp(a, b int) int {
-	return a - b
-}
-
-// NewList returns a lock-free ordered list with values of type int.
-func NewList() *IntList {
-	return &IntList{}
-}
-
 type Node struct {
 	Next *Node
 	Data int64
