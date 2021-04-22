@@ -6,6 +6,9 @@ import (
 	"unsafe"
 )
 
+// TODO: mem profile
+// TODO: interleave inserts and deltes in all ds.
+
 // Enqueue enqueues a `val`
 func (q *LockFreeQueue) Enqueue(val interface{}) {
 	newNode := &Node{val, nil}
