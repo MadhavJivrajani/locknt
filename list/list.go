@@ -8,8 +8,9 @@ import (
 )
 
 type Node struct {
-	Next *Node
-	Data int64
+	Next      *Node
+	Data      int64
+	isDeleted uint32
 }
 
 // Tis an ordered list
@@ -26,8 +27,9 @@ type LockList struct {
 
 func newNode(data int64) *Node {
 	new_node := &Node{
-		Data: data,
-		Next: nil,
+		Data:      data,
+		Next:      nil,
+		isDeleted: 0,
 	}
 	return new_node
 }
@@ -98,6 +100,9 @@ func (list *LockFreeList) Insert(data int64) error {
 
 		nextNode := (*Node)(nextPtr)
 		if ListCmp(nextNode.Data, node.Data) > 0 {
+			if headNode.Next.isDeleted == 1 {
+				continue
+			}
 			node.Next = (*Node)(nextPtr)
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)),
 				nextPtr,
@@ -173,6 +178,7 @@ func (list *LockFreeList) Delete(data int64) error {
 
 		if ListCmp(headNode.Data, data) == 0 {
 			nextPtr := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&headNode.Next)))
+			atomic.AddUint32(&headNode.isDeleted, 1)
 			ok := atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&list.Head)),
 				headPtr,
 				nextPtr)

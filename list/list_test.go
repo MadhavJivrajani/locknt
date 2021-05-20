@@ -1,6 +1,8 @@
 package list
 
 import (
+	"fmt"
+	"math/rand"
 	"sync"
 	"testing"
 )
@@ -61,4 +63,48 @@ func BenchmarkLockDelete(b *testing.B) {
 		}(i, &wg)
 	}
 	wg.Wait()
+}
+
+func generateRandom(size int) []int {
+	var tests []int
+	rand.Seed(420)
+	for i := 0; i < size; i++ {
+		tests = append(tests, i+1)
+	}
+	r := rand.New(rand.NewSource(420))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+
+	return tests
+}
+
+func BenchmarkLockFreeDelAndIns(b *testing.B) {
+	rand.Seed(420)
+	s := NewLockFreeList()
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			s.Insert(int64(i))
+			fmt.Println("Initial insert", i)
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(2)
+		go func(i int, wg *sync.WaitGroup) {
+			s.Insert(int64(i))
+			fmt.Println("Second insert", i)
+			wg.Done()
+		}(i, &wg)
+		go func(i int, wg *sync.WaitGroup) {
+			err := s.Delete(int64(i))
+			fmt.Println(err)
+			fmt.Println("Deleted", i)
+			wg.Done()
+		}(rand.Intn(int(i+1)), &wg)
+	}
+	wg.Wait()
+	fmt.Println("List: ")
+	PrintList(s)
 }
