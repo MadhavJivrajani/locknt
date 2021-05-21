@@ -12,7 +12,7 @@ func (m *Map) Insert(key int64, value interface{}) error {
 		return fmt.Errorf("key out of bounds")
 	}
 	for {
-		nodeAtKey := m.Items[key]
+		nodeAtKey := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&m.Items[key]))))
 		oldPointer := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&nodeAtKey))))
 		newPointer := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&newNode))))
 
@@ -30,7 +30,7 @@ func (m *Map) InsertCompare(key int64, value interface{}, cmp func(a, b interfac
 		return false, fmt.Errorf("key out of bounds")
 	}
 	for {
-		nodeAtKey := m.Items[key]
+		nodeAtKey := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&m.Items[key]))))
 		if nodeAtKey != nil {
 			// If new exiting value has higher priotrity according to the cmp, return false
 			if cmp(nodeAtKey.Value, newNode.Value) {
@@ -53,7 +53,7 @@ func (m *Map) InsertIfDoesntExist(key int64, value interface{}) (bool, error) {
 		return false, fmt.Errorf("key out of bounds")
 	}
 	for {
-		nodeAtKey := m.Items[key]
+		nodeAtKey := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&m.Items[key]))))
 		if nodeAtKey != nil {
 			return false, nil
 		}
@@ -72,7 +72,8 @@ func (m *Map) Lookup(key int64) (interface{}, error) {
 		return nil, fmt.Errorf("key out of bounds")
 	}
 	for {
-		nodeAtKey := m.Items[key]
+		nodeAtKey := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&m.Items[key]))))
+
 		if nodeAtKey == nil {
 			return nil, fmt.Errorf("item not found")
 		}
@@ -89,7 +90,7 @@ func (m *Map) Exists(key int64) bool {
 		return false
 	}
 	for {
-		nodeAtKey := m.Items[key]
+		nodeAtKey := (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&m.Items[key]))))
 		if nodeAtKey == nil {
 			return false
 		}
