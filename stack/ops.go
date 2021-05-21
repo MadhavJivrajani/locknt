@@ -29,7 +29,7 @@ func (stack *LockFreeStack) Pop() interface{} {
 
 func (stack *LockFreeStack) Push(value interface{}) {
 	var oldTop *Item
-	newTop := &Item{value, nil}
+	newTop := NewItem(value)
 
 	for {
 		oldTop = (*Item)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&stack.Top))))
@@ -57,6 +57,9 @@ func (stack *LockStack) Pop() interface{} {
 	defer stack.accessLock.Unlock()
 
 	oldTop := stack.Top
+	if oldTop == nil {
+		return nil
+	}
 	newTop := oldTop.Next
 	stack.Top = newTop
 
@@ -68,7 +71,7 @@ func (stack *LockStack) Push(value interface{}) {
 	defer stack.accessLock.Unlock()
 
 	oldTop := stack.Top
-	newTop := &Item{value, nil}
+	newTop := NewItem(value)
 
 	newTop.Next = oldTop
 	stack.Top = newTop

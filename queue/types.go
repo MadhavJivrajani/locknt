@@ -6,6 +6,7 @@ import "sync"
 type Node struct {
 	Val  interface{}
 	Next *Node
+	// _pad [5]int
 }
 
 // NewNode is a constructor for the Node type
@@ -22,6 +23,7 @@ type LockFreeQueue struct {
 	Head *Node
 	Tail *Node
 	Size uint32
+	// _pad [5]int
 }
 
 // NewLockFreeQueue is a constructor for

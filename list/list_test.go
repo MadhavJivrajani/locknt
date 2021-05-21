@@ -101,3 +101,29 @@ func BenchmarkLockFreeDelAndIns(b *testing.B) {
 	}
 	wg.Wait()
 }
+
+func BenchmarkLockDelAndIns(b *testing.B) {
+	rand.Seed(420)
+	s := NewLockList()
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			s.Insert(int64(i))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(2)
+		go func(i int, wg *sync.WaitGroup) {
+			s.Insert(int64(i))
+			wg.Done()
+		}(i, &wg)
+		go func(i int, wg *sync.WaitGroup) {
+			s.Delete(int64(i))
+			wg.Done()
+		}(rand.Intn(int(i+1)), &wg)
+	}
+	wg.Wait()
+}

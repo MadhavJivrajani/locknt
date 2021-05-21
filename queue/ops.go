@@ -11,7 +11,7 @@ import (
 
 // Enqueue enqueues a `val`
 func (q *LockFreeQueue) Enqueue(val interface{}) {
-	newNode := &Node{val, nil}
+	newNode := NewNode(val)
 	var pointer *Node
 	for {
 		pointer = (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.Tail))))
@@ -69,7 +69,7 @@ func (q *LockQueue) Enqueue(val interface{}) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	newNode := &Node{val, nil}
+	newNode := NewNode(val)
 	q.Tail.Next = newNode
 	q.Tail = newNode
 	q.Size += 1

@@ -6,11 +6,21 @@ import sync "sync"
 type Item struct {
 	Value interface{}
 	Next  *Item
+	_pad  [5]int
 }
 
 // LockFreeStack
 type LockFreeStack struct {
-	Top *Item
+	Top  *Item
+	_pad [7]int
+}
+
+func NewItem(val interface{}) *Item {
+	n := new(Item)
+	n.Value = val
+	n.Next = nil
+
+	return n
 }
 
 // NewLockFreeStack is a constructor
