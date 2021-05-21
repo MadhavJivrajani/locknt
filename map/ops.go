@@ -1,32 +1,10 @@
-package main
+package lfmap
 
 import (
 	"fmt"
 	"sync/atomic"
 	"unsafe"
 )
-
-type Node struct {
-	Value interface{}
-}
-
-type Map struct {
-	Size  int64
-	Items []*Node
-}
-
-func NewNode(value interface{}) *Node {
-	newNode := new(Node)
-	newNode.Value = value
-	return newNode
-}
-
-func NewMap(size int64) *Map {
-	newMap := new(Map)
-	newMap.Size = size
-	newMap.Items = make([]*Node, size)
-	return newMap
-}
 
 func (m *Map) Insert(key int64, value interface{}) error {
 	newNode := NewNode(value)
@@ -123,17 +101,17 @@ func (m *Map) Exists(key int64) bool {
 	}
 }
 
-func main() {
-	m := NewMap(100)
-	m.Insert(10, 2)
-	m.Insert(25, 20)
-	m.Insert(27, 1700)
-	m.Insert(13, 356)
-	m.Insert(12, 12)
-	m.Insert(4, 23)
+// func main() {
+// 	m := NewMap(100)
+// 	m.Insert(10, 2)
+// 	m.Insert(25, 20)
+// 	m.Insert(27, 1700)
+// 	m.Insert(13, 356)
+// 	m.Insert(12, 12)
+// 	m.Insert(4, 23)
 
-	fmt.Println(m.Lookup(25))
-	fmt.Println(m.Lookup(13))
-	fmt.Println(m.Lookup(2))
-	fmt.Println(m.Lookup(105))
-}
+// 	fmt.Println(m.Lookup(25))
+// 	fmt.Println(m.Lookup(13))
+// 	fmt.Println(m.Lookup(2))
+// 	fmt.Println(m.Lookup(105))
+// }

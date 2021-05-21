@@ -1,0 +1,5 @@
+package lfmap
+
+func BenchmarkLockFreeInsert() {
+
+}
