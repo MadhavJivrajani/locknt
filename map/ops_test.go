@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func BenchmarkLockFreeDelAndIns(b *testing.B) {
+func BenchmarkLockFreeLookupAndIns(b *testing.B) {
 	rand.Seed(420)
 	m := NewLockFreeMap(int64(b.N) + 1)
 	var wg sync.WaitGroup
@@ -32,7 +32,7 @@ func BenchmarkLockFreeDelAndIns(b *testing.B) {
 	wg.Wait()
 }
 
-func BenchmarkLockDelAndIns(b *testing.B) {
+func BenchmarkLockLookupAndIns(b *testing.B) {
 	rand.Seed(420)
 	m := NewLockMap(int64(b.N) + 1)
 	var wg sync.WaitGroup
@@ -54,6 +54,94 @@ func BenchmarkLockDelAndIns(b *testing.B) {
 			m.Lookup(int64(i))
 			wg.Done()
 		}(rand.Intn(int(i+1)), &wg)
+	}
+	wg.Wait()
+}
+
+func BenchmarkLockFreeLookup(b *testing.B) {
+	rand.Seed(420)
+	m := NewLockFreeMap(int64(b.N) + 1)
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Lookup(int64(i))
+			wg.Done()
+		}(rand.Intn(int(i+1)), &wg)
+	}
+	wg.Wait()
+}
+
+func BenchmarkLockLookup(b *testing.B) {
+	rand.Seed(420)
+	m := NewLockMap(int64(b.N) + 1)
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Lookup(int64(i))
+			wg.Done()
+		}(rand.Intn(int(i+1)), &wg)
+	}
+	wg.Wait()
+}
+
+func BenchmarkLockFreeIns(b *testing.B) {
+	rand.Seed(420)
+	m := NewLockFreeMap(int64(b.N) + 1)
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+}
+
+func BenchmarkLockIns(b *testing.B) {
+	rand.Seed(420)
+	m := NewLockMap(int64(b.N) + 1)
+	var wg sync.WaitGroup
+	for i := 0; i < b.N/2; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
+	}
+	wg.Wait()
+	for i := b.N / 2; i < b.N; i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			m.Insert(int64(i), rand.Intn(int(i+1)))
+			wg.Done()
+		}(i, &wg)
 	}
 	wg.Wait()
 }
