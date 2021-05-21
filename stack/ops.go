@@ -17,7 +17,7 @@ func (stack *LockFreeStack) Pop() interface{} {
 			continue
 		}
 
-		newTop = (*Item)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&stack.Top.Next))))
+		newTop = (*Item)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&oldTop.Next))))
 
 		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&stack.Top)), unsafe.Pointer(oldTop), unsafe.Pointer(newTop)) {
 			break

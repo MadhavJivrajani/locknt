@@ -1,7 +1,6 @@
 package list
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"testing"
@@ -85,7 +84,6 @@ func BenchmarkLockFreeDelAndIns(b *testing.B) {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
 			s.Insert(int64(i))
-			fmt.Println("Initial insert", i)
 			wg.Done()
 		}(i, &wg)
 	}
@@ -94,17 +92,12 @@ func BenchmarkLockFreeDelAndIns(b *testing.B) {
 		wg.Add(2)
 		go func(i int, wg *sync.WaitGroup) {
 			s.Insert(int64(i))
-			fmt.Println("Second insert", i)
 			wg.Done()
 		}(i, &wg)
 		go func(i int, wg *sync.WaitGroup) {
-			err := s.Delete(int64(i))
-			fmt.Println(err)
-			fmt.Println("Deleted", i)
+			s.Delete(int64(i))
 			wg.Done()
 		}(rand.Intn(int(i+1)), &wg)
 	}
 	wg.Wait()
-	fmt.Println("List: ")
-	PrintList(s)
 }

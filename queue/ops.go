@@ -38,15 +38,21 @@ func (q *LockFreeQueue) Enqueue(val interface{}) {
 // is empty and dequeue is attempted.
 func (q *LockFreeQueue) Dequeue() (interface{}, error) {
 	var pointer *Node
+	var newHead *Node
 	for {
 		pointer = (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.Head))))
-		if pointer.Next == nil {
+		if atomic.CompareAndSwapPointer(
+			(*unsafe.Pointer)(unsafe.Pointer(&pointer.Next)),
+			unsafe.Pointer(nil),
+			unsafe.Pointer(nil),
+		) {
 			return nil, fmt.Errorf("empty queue")
 		}
+		newHead = (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pointer.Next))))
 		ok := atomic.CompareAndSwapPointer(
 			(*unsafe.Pointer)(unsafe.Pointer(&q.Head)),
 			unsafe.Pointer(pointer),
-			unsafe.Pointer(pointer.Next),
+			unsafe.Pointer(newHead),
 		)
 		if ok {
 			break
@@ -54,7 +60,7 @@ func (q *LockFreeQueue) Dequeue() (interface{}, error) {
 	}
 	// decrement queue size by 1.
 	atomic.AddUint32(&q.Size, ^uint32(0))
-	return pointer.Next.Val, nil
+	return newHead.Val, nil
 }
 
 // Enqueue implements the LockQueue type, enqueues
