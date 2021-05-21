@@ -43,7 +43,7 @@ func BenchmarkLockFreeDelete(b *testing.B) {
 		go func(i int, wg *sync.WaitGroup) {
 			s.Delete(int64(i))
 			wg.Done()
-		}(i, &wg)
+		}(rand.Intn(i+1), &wg)
 	}
 	wg.Wait()
 }
@@ -59,7 +59,7 @@ func BenchmarkLockDelete(b *testing.B) {
 		go func(i int, wg *sync.WaitGroup) {
 			s.Delete(int64(i))
 			wg.Done()
-		}(i, &wg)
+		}(rand.Intn(i+1), &wg)
 	}
 	wg.Wait()
 }

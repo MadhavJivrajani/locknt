@@ -11,14 +11,14 @@ type Node struct {
 	Next      *Node
 	Data      int64
 	isDeleted int64
-	_pad      [5]int
+	// _pad      [5]int
 }
 
 // Tis an ordered list
 type LockFreeList struct {
 	Head *Node
 	Size uint32
-	_pad [6]int
+	// _pad [6]int
 }
 
 type LockList struct {
