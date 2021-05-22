@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-// TODO: mem profile
+// TODO: profile
 // TODO: interleave inserts and deltes in all ds.
 
 // Enqueue enqueues a `val`

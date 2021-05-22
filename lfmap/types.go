@@ -4,13 +4,13 @@ import "sync"
 
 type Node struct {
 	Value interface{}
-	// _pad  [6]int
+	_pad  [6]int
 }
 
 type LockFreeMap struct {
 	Size  int64
 	Items []*Node
-	// _pad  [4]int
+	_pad  [4]int
 }
 
 type LockMap struct {

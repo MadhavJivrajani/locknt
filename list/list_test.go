@@ -2,6 +2,7 @@ package list
 
 import (
 	"math/rand"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -77,6 +78,7 @@ func generateRandom(size int) []int {
 }
 
 func BenchmarkLockFreeDelAndIns(b *testing.B) {
+	runtime.GOMAXPROCS(1)
 	rand.Seed(420)
 	s := NewLockFreeList()
 	var wg sync.WaitGroup
@@ -103,6 +105,7 @@ func BenchmarkLockFreeDelAndIns(b *testing.B) {
 }
 
 func BenchmarkLockDelAndIns(b *testing.B) {
+	runtime.GOMAXPROCS(1)
 	rand.Seed(420)
 	s := NewLockList()
 	var wg sync.WaitGroup

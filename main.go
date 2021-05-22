@@ -1,13 +1,15 @@
 package main
 
 import (
-	"math/rand"
+	"fmt"
 	"sync"
 
 	"github.com/MadhavJivrajani/locknt/list"
 )
 
 func main() {
+	l := list.NewLockFreeList()
+	var wg sync.WaitGroup
 
 	// for i := 0; i < 10; i++ {
 	// 	wg.Add(1)
@@ -33,28 +35,21 @@ func main() {
 	// }
 	// wg.Wait()
 
-	b := 20000
-	rand.Seed(420)
-	s := list.NewLockFreeList()
-	var wg sync.WaitGroup
-	for i := 0; i < b/2; i++ {
-		wg.Add(1)
-		go func(i int, wg *sync.WaitGroup) {
-			s.Insert(int64(i))
-			wg.Done()
-		}(i, &wg)
-	}
-	wg.Wait()
-	for i := b / 2; i < b; i++ {
-		wg.Add(2)
-		go func(i int, wg *sync.WaitGroup) {
-			s.Insert(int64(i))
-			wg.Done()
-		}(i, &wg)
-		go func(i int, wg *sync.WaitGroup) {
-			s.Delete(int64(i))
-			wg.Done()
-		}(rand.Intn(int(i+1)), &wg)
-	}
+	l.Insert(10)
+	l.Insert(30)
+
+	wg.Add(2)
+	go func(i int, wg *sync.WaitGroup) {
+		err := l.Delete(int64(i))
+		fmt.Println(err)
+		list.PrintList(l)
+		wg.Done()
+	}(10, &wg)
+	go func(i int, wg *sync.WaitGroup) {
+		err := l.Insert(int64(i))
+		fmt.Println(err)
+		list.PrintList(l)
+		wg.Done()
+	}(20, &wg)
 	wg.Wait()
 }
