@@ -72,7 +72,7 @@ func (q *LockQueue) Enqueue(val interface{}) {
 	newNode := NewNode(val)
 	q.Tail.Next = newNode
 	q.Tail = newNode
-	q.Size += 1
+	q.Size++
 }
 
 // Dequeue implements the LockQueue type, dequeues
@@ -87,6 +87,10 @@ func (q *LockQueue) Dequeue() (interface{}, error) {
 		return nil, fmt.Errorf("empty queue")
 	}
 	pointer = pointer.Next
-	q.Size -= 1
+	q.Size--
+	if pointer.Next == nil {
+		return nil, fmt.Errorf("empty queue")
+	}
+
 	return pointer.Next.Val, nil
 }

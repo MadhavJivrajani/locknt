@@ -1,8 +1,16 @@
 # locknt
-A collections of Lock-free data structures in Golang
 
-## Queue
-The queue implementation is based on [this](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.8674&rep=rep1&type=pdf) paper.
+<p align="center">
+    <img src="https://raw.githubusercontent.com/ashleymcnamara/gophers/master/GOPHER_LAPTOP.png" width="350" height="300">
+</p>
+
+A collection of lock-free data structures in Golang, done as a project under the course: Heterogenous Parallelism (UE18CS342), at PES University.
+
+## Data structures implemented:
+- [Queue](./queue)
+- [Stack](./stack)
+- [List](./list)
+- [Map](./lfmap)
 
 ### Ex
 ```go
@@ -20,19 +28,28 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		go func(i int, wg *sync.WaitGroup) {
+		go func(i int) {
+			defer wg.Done()
 			q.Enqueue(i)
-			wg.Done()
-		}(i, &wg)
+			
+		}(i)
 	}
 	wg.Wait()
 	queue.PrintQueue(q)
 }
 ```
-### Benchmarking and generating call graphs
 
+### Benchmarking and generating call graphs
 ```
 go test -bench=^<benchmark_name>$ -benchtime=100000x -cpuprofile profile_file.out
 go tool pprof profile_file.out
 (pprof) web # insde pprof, type this
 ```
+
+### Work done by:
+- Madhav Jivrajani
+- M S Akshatha Laxmi
+- Sparsh Temani
+
+### Presentations
+The presentations done for this project can be found [here](./assets).
