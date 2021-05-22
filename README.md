@@ -1,4 +1,9 @@
 # locknt
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/ashleymcnamara/gophers/master/GOPHER_LAPTOP.png" width="350" height="300">
+</p>
+
 A collection of lock-free data structures in Golang, done as a project under the course: Heterogenous Parallelism (UE18CS342), at PES University.
 
 ## Data structures implemented:
